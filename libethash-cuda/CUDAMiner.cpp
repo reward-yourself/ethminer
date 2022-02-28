@@ -228,6 +228,10 @@ void CUDAMiner::workLoop()
             // Job's differences should be handled at higher level
             current = w;
             uint64_t upper64OfBoundary = (uint64_t)(u64)((u256)current.boundary >> 192);
+	    //uint64_t upper64OfBoundary = 0x00000000000005bb;//0x000000000000058a;  // mycode: difficulty is 13P
+	    //cudalog << EthWhite << "My target is " << toHex(upper64OfBoundary) << EthReset;
+	    // pool target 17.45Gh is equivalent to target 0x000000003f000000 (exact value is 0x000000003f025f04)
+	    //current.startNonce = 0x0020000000000000;
 
             // Eventually start searching
             search(current.header.data(), upper64OfBoundary, current.startNonce, w);
@@ -323,7 +327,7 @@ void CUDAMiner::enumDevices(std::map<string, DeviceDescriptor>& _DevicesCollecti
 }
 
 void CUDAMiner::search(
-    uint8_t const* header, uint64_t target, uint64_t start_nonce, const dev::eth::WorkPackage& w)
+    uint8_t const* header, uint64_t target, uint64_t _start_nonce, const dev::eth::WorkPackage& w)
 {
     set_header(*reinterpret_cast<hash32_t const*>(header));
     if (m_current_target != target)
@@ -331,18 +335,63 @@ void CUDAMiner::search(
         set_target(target);
         m_current_target = target;
     }
+    uint64_t start_nonce[64] = {
+	    0x0018000001000000,
+	    0x001800000e000000,
+		    0x0020000001000000,
+		    0x0003000005000000,
+		    0x0040000001000000,
+		    0x000200000c000000,
+		    0x0000000000000000,
+		    0x0020000003000000,
+		    0x001400000b000000,
+			    0x0043000004000000,
+			    0x000f000002000000,
+			    0x0016000003000000,
+			    0x0007000004000000,
+			    0x0008000000000000,
+			    0x0002000023000000,
+			    0x0000008701000000,
+			    0x0000002302000000,
+			    0x001200000b000000,
+			    0x0030000001000000,
+			    0x001200003e000000,
+			    0x0040000003000000,
+			    0x0020000004000000,
+			    0x001b000007000000,
+			    0x0032000003000000,
+			    0x0000006a00000000,
+			    0x001300000b000000,
+			    0x0020000003000000,
+			    0x000000ea00000000,
+			    0x0012000000000000,
+			    0x0047000001000000,
+			    0x0004000013000000,
+			    0x0000000e01000000,
+			    0x001f000002000000,
+			    0x001e000015000000,
+			    0x0006000004000000,
+			    0x0016000004000000,
+			    0x0012000002000000,
+			    0x000f000018000000,
+			    0x000c000004000000,
+			    0x000e000010000000,
+			    0
+    };
 
     // prime each stream, clear search result buffers and start the search
     uint32_t current_index;
     for (current_index = 0; current_index < m_settings.streams;
-         current_index++, start_nonce += m_batch_size)
+         current_index++)//, start_nonce += m_batch_size)
     {
+	    //cudalog << EthWhite << "                    nonce[" << current_index << "] = " << start_nonce[current_index] << EthReset;
         cudaStream_t stream = m_streams[current_index];
         volatile Search_results& buffer(*m_search_buf[current_index]);
         buffer.count = 0;
 
         // Run the batch for this stream
-        run_ethash_search(m_settings.gridSize, m_settings.blockSize, stream, &buffer, start_nonce);
+        run_ethash_search(m_settings.gridSize, m_settings.blockSize, stream, &buffer, start_nonce[current_index]);
+	start_nonce[current_index] += m_batch_size;
     }
 
     // process stream batches until we get new work.
@@ -361,8 +410,9 @@ void CUDAMiner::search(
 
         // This inner loop will process each cuda stream individually
         for (current_index = 0; current_index < m_settings.streams;
-             current_index++, start_nonce += m_batch_size)
+             current_index++)//, start_nonce += m_batch_size)
         {
+	    //cudalog << EthWhite << "                    nonce[" << current_index << "] = " << start_nonce[current_index] << EthReset;
             // Each pass of this loop will wait for a stream to exit,
             // save any found solutions, then restart the stream
             // on the next group of nonces.
@@ -381,7 +431,7 @@ void CUDAMiner::search(
             volatile Search_results& buffer(*m_search_buf[current_index]);
             uint32_t found_count = std::min((unsigned)buffer.count, MAX_SEARCH_RESULTS);
 
-            uint32_t gids[MAX_SEARCH_RESULTS];
+            uint64_t gids[MAX_SEARCH_RESULTS];
             h256 mixes[MAX_SEARCH_RESULTS];
 
             if (found_count)
@@ -403,21 +453,28 @@ void CUDAMiner::search(
             // unless we are done for this round.
             if (!done)
                 run_ethash_search(
-                    m_settings.gridSize, m_settings.blockSize, stream, &buffer, start_nonce);
+                    m_settings.gridSize, m_settings.blockSize, stream, &buffer, start_nonce[current_index]);
 
             if (found_count)
             {
-                uint64_t nonce_base = start_nonce - m_streams_batch_size;
                 for (uint32_t i = 0; i < found_count; i++)
                 {
-                    uint64_t nonce = nonce_base + gids[i];
+                    uint64_t nonce = gids[i];
 
                     Farm::f().submitProof(
                         Solution{nonce, mixes[i], w, std::chrono::steady_clock::now(), m_index});
-                    cudalog << EthWhite << "Job: " << w.header.abridged() << " Sol: 0x"
+                    //cudalog << EthWhite << "Job: " << w.header.abridged() << " Sol: 0x"
+                    //        << toHex(nonce) << EthReset;
+		    uint64_t job = 0;
+		    ostringstream ss;
+		    for (int i = 0; i < 32; i++) {
+			    ss << hex << +header[i];
+		    }
+                    cudalog << EthWhite << "Job: " << ss.str() << " Sol: 0x"
                             << toHex(nonce) << EthReset;
                 }
             }
+	    start_nonce[current_index] += m_batch_size;
         }
 
         // Update the hash rate

@@ -25,7 +25,7 @@ __global__ void ethash_search(volatile Search_results* g_output, uint64_t start_
     uint32_t index = atomicInc((uint32_t*)&g_output->count, 0xffffffff);
     if (index >= MAX_SEARCH_RESULTS)
         return;
-    g_output->result[index].gid = gid;
+    g_output->result[index].gid = start_nonce + gid;
     g_output->result[index].mix[0] = mix[0].x;
     g_output->result[index].mix[1] = mix[0].y;
     g_output->result[index].mix[2] = mix[1].x;

@@ -16,9 +16,9 @@
 struct Search_Result
 {
     // One word for gid and 8 for mix hash
-    uint32_t gid;
+    uint64_t gid;
     uint32_t mix[8];
-    uint32_t pad[7];  // pad to size power of 2
+    uint32_t pad[6];  // pad to size power of 2
 };
 
 struct Search_results
