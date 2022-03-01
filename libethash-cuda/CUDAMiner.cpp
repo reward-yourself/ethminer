@@ -234,7 +234,7 @@ void CUDAMiner::workLoop()
 	    //current.startNonce = 0x0020000000000000;
 
             // Eventually start searching
-            search(current.header.data(), upper64OfBoundary, current.startNonce, w);
+            search(current.header.data(), upper64OfBoundary, w);
         }
 
         // Reset miner and stop working
@@ -327,7 +327,7 @@ void CUDAMiner::enumDevices(std::map<string, DeviceDescriptor>& _DevicesCollecti
 }
 
 void CUDAMiner::search(
-    uint8_t const* header, uint64_t target, uint64_t _start_nonce, const dev::eth::WorkPackage& w)
+    uint8_t const* header, uint64_t target, const dev::eth::WorkPackage& w)
 {
     set_header(*reinterpret_cast<hash32_t const*>(header));
     if (m_current_target != target)
@@ -465,7 +465,6 @@ void CUDAMiner::search(
                         Solution{nonce, mixes[i], w, std::chrono::steady_clock::now(), m_index});
                     //cudalog << EthWhite << "Job: " << w.header.abridged() << " Sol: 0x"
                     //        << toHex(nonce) << EthReset;
-		    uint64_t job = 0;
 		    ostringstream ss;
 		    for (int i = 0; i < 32; i++) {
 			    ss << hex << +header[i];
