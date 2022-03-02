@@ -228,7 +228,7 @@ void CUDAMiner::workLoop()
             // Job's differences should be handled at higher level
             current = w;
             uint64_t upper64OfBoundary = (uint64_t)(u64)((u256)current.boundary >> 192);
-	    //uint64_t upper64OfBoundary = 0x00000000000005bb;//0x000000000000058a;  // mycode: difficulty is 13P
+	    //uint64_t upper64OfBoundary = 0x000000000000058a;  // mycode: difficulty is 13P
 	    //cudalog << EthWhite << "My target is " << toHex(upper64OfBoundary) << EthReset;
 	    // pool target 17.45Gh is equivalent to target 0x000000003f000000 (exact value is 0x000000003f025f04)
 	    //current.startNonce = 0x0020000000000000;
@@ -339,25 +339,25 @@ void CUDAMiner::search(
 	    0x0018000001000000,
 	    0x001800000e000000,
 		    0x0020000001000000,
+		    0x002000000f000000,
+		    0x0020000003000000,
+		    0x0002000023000000,
 		    0x0003000005000000,
 		    0x0040000001000000,
 		    0x000200000c000000,
 		    0x07f0000000000000,
-		    0x0020000003000000,
 		    0x001400000b000000,
 			    0x0043000004000000,
 			    0x000f000002000000,
 			    0x0016000003000000,
 			    0x0007000004000000,
 			    0x0008000000000000,
-			    0x0002000023000000,
 			    0x0000008701000000,
 			    0x0000002302000000,
 			    0x001200000b000000,
 			    0x0030000001000000,
 			    0x001200003e000000,
 			    0x0040000003000000,
-			    0x0020000004000000,
 			    0x001b000007000000,
 			    0x0032000003000000,
 			    0x0000006a00000000,
@@ -467,7 +467,7 @@ void CUDAMiner::search(
                     //        << toHex(nonce) << EthReset;
 		    ostringstream ss;
 		    for (int i = 0; i < 32; i++) {
-			    ss << hex << +header[i];
+			    ss << hex << setw(2) << setfill('0') << +header[i];
 		    }
                     cudalog << EthWhite << "Job: " << ss.str() << " Sol: 0x"
                             << toHex(nonce) << EthReset;
