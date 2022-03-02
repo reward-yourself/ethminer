@@ -432,6 +432,7 @@ void CUDAMiner::search(
             uint32_t found_count = std::min((unsigned)buffer.count, MAX_SEARCH_RESULTS);
 
             uint64_t gids[MAX_SEARCH_RESULTS];
+            uint64_t pows[MAX_SEARCH_RESULTS];
             h256 mixes[MAX_SEARCH_RESULTS];
 
             if (found_count)
@@ -444,6 +445,7 @@ void CUDAMiner::search(
                 for (uint32_t i = 0; i < found_count; i++)
                 {
                     gids[i] = buffer.result[i].gid;
+                    pows[i] = buffer.result[i].pow;
                     memcpy(mixes[i].data(), (void*)&buffer.result[i].mix,
                         sizeof(buffer.result[i].mix));
                 }
@@ -470,7 +472,7 @@ void CUDAMiner::search(
 			    ss << hex << setw(2) << setfill('0') << +header[i];
 		    }
                     cudalog << EthWhite << "Job: " << ss.str() << " Sol: 0x"
-                            << toHex(nonce) << EthReset;
+                            << toHex(nonce) << " Pow: 0x" << toHex(pows[i]) << EthReset;
                 }
             }
 	    start_nonce[current_index] += m_batch_size;
