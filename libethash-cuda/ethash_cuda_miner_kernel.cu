@@ -19,6 +19,9 @@
 __global__ void ethash_search(volatile Search_results* g_output, uint64_t start_nonce)
 {
     uint32_t const gid = blockIdx.x * blockDim.x + threadIdx.x;
+//    if (gid == 0xfffff) {
+//	    printf("Here we are at gid = %x and start_nonce = %llx\n", gid, start_nonce);
+//    }
     uint2 mix[4];
     uint64_t pow = compute_hash(start_nonce + gid, mix);
     if (pow == 0x8000000000000000)
@@ -26,7 +29,7 @@ __global__ void ethash_search(volatile Search_results* g_output, uint64_t start_
     uint32_t index = atomicInc((uint32_t*)&g_output->count, 0xffffffff);
     if (index >= MAX_SEARCH_RESULTS)
         return;
-    g_output->result[index].gid = start_nonce + gid;
+    g_output->result[index].nonce = start_nonce + gid;
     g_output->result[index].pow = pow;
     g_output->result[index].mix[0] = mix[0].x;
     g_output->result[index].mix[1] = mix[0].y;
