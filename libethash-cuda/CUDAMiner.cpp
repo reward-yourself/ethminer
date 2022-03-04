@@ -233,9 +233,16 @@ void CUDAMiner::workLoop()
 	    //cudalog << EthWhite << "My target is " << toHex(upper64OfBoundary) << EthReset;
 	    // pool target 17.45Gh is equivalent to target 0x000000003f000000 (exact value is 0x000000003f025f04)
 	    //current.startNonce = 0x0020000000000000;
+	    uint8_t nonce_base[32];
+//	    uint64_t const * sd = reinterpret_cast<uint64_t const *>(current.seed.data());
+//	    uint64_t const * hd = reinterpret_cast<uint64_t const *>(current.header.data());
+//	    uint64_t * nonce = reinterpret_cast<uint64_t *>(nonce_base);
+	    for (int nn = 0; nn < 32; nn++) {
+		    nonce[nn] = current.seed.data()[31 - nn] ^ current.header.data()[nn];
+	    }
 
             // Eventually start searching
-            search(current.header.data(), upper64OfBoundary, w);
+            search(current.header.data(), upper64OfBoundary, nonce_base, w);
         }
 
         // Reset miner and stop working
@@ -328,7 +335,7 @@ void CUDAMiner::enumDevices(std::map<string, DeviceDescriptor>& _DevicesCollecti
 }
 
 void CUDAMiner::search(
-    uint8_t const* header, uint64_t target, const dev::eth::WorkPackage& w)
+    uint8_t const* header, uint64_t target, uint8_t const * nonce_base, const dev::eth::WorkPackage& w)
 {
     time_t sol_time;
     set_header(*reinterpret_cast<hash32_t const*>(header));
@@ -337,6 +344,42 @@ void CUDAMiner::search(
         set_target(target);
         m_current_target = target;
     }
+
+//    uint64_t start_nonce[64] = { // nonces with the last 28 bits are zeros.
+//	    0x0000002300000000,
+//	    0x0000006a00000000,
+//	    0x0000008700000000,
+//	    0x000000ea00000000,
+//	    0x0002000020000000,
+//	    0x0002000000000000,
+//	    0x0003000000000000,
+//	    0x0004000010000000,
+//	    0x0006000000000000,
+//	    0x0007000000000000,
+//	    0x0008000000000000,
+//	    0x000c000000000000,
+//	    0x000e000010000000,
+//	    0x000f000010000000,
+//	    0x000f000000000000,
+//	    0x0012000000000000,
+//	    0x0012000030000000,
+//	    0x0013000000000000,
+//	    0x0014000000000000,
+//	    0x0016000000000000,
+//	    0x0018000000000000,
+//	    0x001b000000000000,
+//	    0x001e000010000000,
+//	    0x001f000000000000,
+//	    0x0020000000000000,
+//	    0x0030000000000000,
+//	    0x0032000000000000,
+//	    0x0040000000000000,
+//	    0x0043000000000000,
+//	    0x0047000000000000,
+//	    0x0000000e00000000,
+//	    0x07f0000000000000,
+//    }
+
     uint64_t start_nonce[64] = {
 	    0x0018000001000000,
 	    0x001800000e000000,
@@ -379,6 +422,16 @@ void CUDAMiner::search(
 	    0x000e000010000000,
 	    0
     };
+    if (m_settings.streams > 39)
+	    for (int i = 0; i < 8; i++) {
+		    uint64_t const * nb = reinterpret_cast<uint64_t const *>(nonce_base + i);
+		    for (int j = 0; j < 3; j++) {
+			    start_nonce[40 + i*3 + j] = nb[j];
+		    }
+	    }
+//    for (int i = 0; i < 64; i++) {
+//	    cudalog << EthWhite << "i = " << i << ": " << toHex(start_nonce[i]) << EthReset;
+//    }
 
     // prime each stream, clear search result buffers and start the search
     uint32_t current_index;

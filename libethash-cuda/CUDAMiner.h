@@ -39,7 +39,7 @@ public:
     static void enumDevices(std::map<string, DeviceDescriptor>& _DevicesCollection);
 
     void search(
-        uint8_t const* header, uint64_t target, const dev::eth::WorkPackage& w);
+        uint8_t const* header, uint64_t target, uint8_t const* nonce, const dev::eth::WorkPackage& w);
 
 protected:
     bool initDevice() override;
